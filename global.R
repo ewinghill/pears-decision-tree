@@ -9,7 +9,20 @@ questions <- list(
   q1 = list(
     text = "Was this an activity intended to reach an external audience?",
     help = "This includes education provided in-person or online, one-on-one or to groups, as well as passive outreach like flyers, booths, newsletters, or media campaigns.",
-    options = list(Yes = "q2", No = "r_skip")
+    options = list(Yes = "q1b", No = "r_skip")
+  ),
+  q1b = list(
+    text = "Was this part of an ongoing strategy, like a PSE Site Activity or Social Marketing Campaign?",
+    help = "These efforts include coordinated, long-term strategies like policy, systems, and environmental changes or broad public awareness campaigns.",
+    options = list(Yes = "q1c", No = "q2")
+  ),
+  q1c = list(
+    text = "Which type of ongoing strategy was it?",
+    help = "Select the category that best fits this activity.",
+    options = list(
+      "PSE Site Activity" = "r_pse",
+      "Social Marketing Campaign" = "r_social"
+    )
   ),
   q2 = list(
     text = "Was it a one-on-one educational interaction?",

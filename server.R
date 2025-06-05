@@ -54,12 +54,48 @@ server <- function(input, output, session) {
     req(is.null(state$final))
     
     q <- questions[[state$current]]
-    tagList(
-      h3(q$text),
-      actionButton("answer_Yes", "Yes"),
-      actionButton("answer_No", "No")
-    )
+    choices <- names(q$options)
+    
+    if (length(choices) == 2 && all(choices %in% c("Yes", "No"))) {
+      tagList(
+        h3(q$text),
+        if (!is.null(q$help)) p(em(q$help)),
+        actionButton("answer_Yes", "Yes"),
+        actionButton("answer_No", "No")
+      )
+    } else {
+      radioButtons(
+        inputId = "multi_choice",
+        label = tagList(
+          h3(q$text),
+          if (!is.null(q$help)) p(em(q$help))
+        ),
+        choices = choices,
+        selected = character(0)
+      )
+    }
   })
+  
+  observeEvent(input$multi_choice, {
+    req(state$current)
+    selected <- input$multi_choice
+    next_node <- questions[[state$current]]$options[[selected]]
+    
+    if (!(next_node %in% names(questions)) && !(next_node %in% names(results))) {
+      showNotification("Internal logic error: next_node not defined.", type = "error")
+      return()
+    }
+    
+    state$path <- c(state$path, state$current, next_node)
+    state$steps[[length(state$steps) + 1]] <- list(q = state$current, a = selected)
+    
+    if (startsWith(next_node, "r_")) {
+      state$final <- next_node
+    } else {
+      state$current <- next_node
+    }
+  })
+  
   
   # Render the final result and decision tree
   output$result_ui <- renderUI({
@@ -105,6 +141,9 @@ server <- function(input, output, session) {
       node [fontname = Calibri, shape = box, style = filled, color = "#0C234B", penwidth=2];
 
       q1 [label="Activity intended to reach\\nan external audience?", fillcolor="{highlight("q1")}", fontcolor="{font_color("q1")}"];
+      q1b [label="Part of an ongoing\\nstrategy (PSE or Social)?", fillcolor="{highlight("q1b")}", fontcolor="{font_color("q1b")}"];
+      q1c [label="Which ongoing\\nstrategy type?", fillcolor="{highlight("q1c")}", fontcolor="{font_color("q1c")}"];
+
       q2 [label="One-on-one education?", fillcolor="{highlight("q2")}", fontcolor="{font_color("q2")}"];
       q2b [label="Track this one-on-one\\ninteraction in more detail?", fillcolor="{highlight("q2b")}", fontcolor="{font_color("q2b")}"];
       q3 [label="Group education ≥ 20 min?", fillcolor="{highlight("q3")}", fontcolor="{font_color("q3")}"];
@@ -124,15 +163,20 @@ server <- function(input, output, session) {
       r_social [label="Social Marketing", fillcolor="{highlight("r_social")}", fontcolor="{font_color("r_social")}"];
       r_skip [label="Outside Engage\\n(Consider Reflect)", fillcolor="{highlight("r_skip")}", fontcolor="{font_color("r_skip")}"];
 
-      q1 -> q2 [label="Yes"];
+      q1 -> q1b [label="Yes"];
       q1 -> r_skip [label="No"];
+      q1b -> q1c [label="Yes"];
+      q1b -> q2 [label="No"];
+      q1c -> r_pse [label="PSE Site Activity"];
+      q1c -> r_social [label="Social Marketing"];
+
       q2 -> q2b [label="Yes"];
       q2b -> r_crm [label="Yes"];
       q2b -> r_direct [label="No"];
       q2 -> q3 [label="No"];
       q3 -> r_program [label="Yes"];
       q3 -> q4 [label="No"];
-      q4 -> q4b [label="No"];
+      q4 -> q4b [label="Yes"];
       q4b -> r_social [label="Yes"];
       q4b -> r_indirect [label="No"];
       q4 -> q5 [label="No"];
@@ -154,3 +198,5 @@ server <- function(input, output, session) {
   
   
 }
+
+
